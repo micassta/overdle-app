@@ -1,0 +1,30 @@
+# FROM node:22
+
+# WORKDIR /overdle
+
+# # Instalamos dependencias
+# COPY package.json package-lock.json ./
+# RUN npm install
+
+# # Copiamos el código
+# COPY . .
+
+# # Exponemos el puerto
+# EXPOSE 3000
+
+# # EL CAMBIO CLAVE: Agregamos -H 0.0.0.0
+# # Esto obliga a Next.js a escuchar peticiones desde fuera del contenedor
+# CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0"]
+
+FROM node:22
+
+WORKDIR /overdle
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]

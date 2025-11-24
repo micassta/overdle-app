@@ -1,0 +1,228 @@
+/* overdle-frontend/src/app/classic/classic.css */
+
+/* 1. CONTENEDOR PRINCIPAL DEL JUEGO */
+.classic-game-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem;
+    gap: 1.5rem;
+    width: 100%;
+    color: white; /* Asegura texto blanco base */
+}
+
+/* 2. CAJA DE INFORMACIÓN SUPERIOR */
+.info-box {
+    background: linear-gradient(135deg, #F8ECC0, #C2AC62, #865833);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+    color: #2d2d2d;
+    margin-bottom: 20px;
+}
+
+/* 3. FORMULARIO DE INPUT */
+.input-form {
+    display: flex;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    z-index: 100; /* Para que el menú desplegable quede encima de los resultados */
+}
+
+.input-wrapper {
+    position: relative;
+    flex-grow: 1;
+}
+
+/* Corrección para que el input respete el tamaño y no tape el botón */
+.input-wrapper input {
+    width: 100%;
+    padding: 15px;
+    font-size: 1rem;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid #555;
+    border-radius: 8px 0 0 8px;
+    color: white;
+    outline: none;
+    box-sizing: border-box; /* <--- ESTA ES LA CLAVE: Evita que el padding agrande el input */
+}
+
+.input-wrapper input:focus {
+    border-color: #FA9C1E; /* Naranja Overwatch */
+}
+
+.submit-button {
+    padding: 15px 25px;
+    background-color: #FA9C1E;
+    color: white;
+    border: none;
+    border-radius: 0 8px 8px 0;
+    font-weight: bold;
+    cursor: pointer;
+    flex-shrink: 0; /* <--- IMPORTANTE: Prohíbe que el botón se encoja o se deje tapar */
+    white-space: nowrap; /* Asegura que el texto "OK" no se rompa */
+}
+
+/* LISTA DE SUGERENCIAS (MENÚ DESPLEGABLE) */
+.suggestions-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: #222;
+    border: 1px solid #444;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 101;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    width: 100%;
+    background: none;
+    border: none;
+    color: white;
+    text-align: left;
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+}
+
+.suggestion-item:hover {
+    background-color: #FA9C1E;
+    color: black;
+}
+
+.hero-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+
+/* --- AQUÍ EMPIEZA LA MAGIA DE LOS RESULTADOS --- */
+
+/* 4. CONTENEDOR DE LA LISTA DE INTENTOS */
+.results-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Espacio entre cada intento */
+    width: 100%;
+    max-width: 800px;
+    margin-top: 30px;
+}
+
+/* 5. FILA DE UN HÉROE (Display Flex horizontal) */
+.result-row {
+    display: flex;
+    flex-direction: row; /* Fuerza que vayan uno al lado del otro */
+    gap: 10px;
+    justify-content: center;
+    align-items: stretch; /* Que todas las cajas tengan la misma altura */
+    height: 100px; /* Altura fija para uniformidad */
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* 6. LA FOTO DEL HÉROE */
+.hero-card {
+    width: 100px;       /* Ancho fijo */
+    min-width: 100px;   /* Evita que se aplaste */
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;   /* Recorta la imagen si sobra */
+    border: 2px solid #444;
+    background-color: black;
+}
+
+.hero-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ajusta la imagen sin deformarla */
+}
+
+/* 7. LAS CAJITAS DE ATRIBUTOS (Género, Rol, etc.) */
+.attribute-box {
+    flex: 1; /* Ocupan el espacio restante equitativamente */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #2d2d2d; /* Color gris oscuro por defecto */
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+    border: 2px solid transparent; /* Para el borde de color */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    text-shadow: 1px 1px 2px black;
+}
+
+/* Etiqueta pequeña (Género, Rol...) */
+.attribute-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 5px;
+    font-weight: normal;
+}
+
+/* --- COLORES DE VERDAD/FALSO --- */
+/* Verde para correcto */
+.correct {
+    background-color: #1c9e43 !important; 
+    border-color: #4ef07e !important;
+}
+
+/* Rojo para incorrecto */
+.incorrect {
+    background-color: #bd2626 !important;
+    border-color: #ff5c5c !important;
+}
+
+/* Flechas para el año */
+.arrow-up::after { content: " ↑"; font-size: 1.2em; }
+.arrow-down::after { content: " ↓"; font-size: 1.2em; }
+
+/* Animación de entrada */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilo para el botón de siguiente nivel */
+.next-mode-btn {
+  display: inline-block;
+  background-color: #FA9C1E;
+  color: white;
+  padding: 15px 30px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 50px; /* Redondo */
+  text-decoration: none;
+  box-shadow: 0 0 15px rgba(250, 156, 30, 0.6);
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: pulse 2s infinite;
+}
+
+.next-mode-btn:hover {
+  transform: scale(1.05);
+  background-color: #ffb759;
+  box-shadow: 0 0 25px rgba(250, 156, 30, 0.9);
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(250, 156, 30, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(250, 156, 30, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(250, 156, 30, 0); }
+}

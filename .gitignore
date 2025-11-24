@@ -1,0 +1,27 @@
+# --- Dependencias (Nunca se suben) ---
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# --- Next.js y Builds ---
+.next/
+out/
+build/
+dist/
+
+# --- Variables de Entorno y Secretos (SUPER IMPORTANTE) ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# --- Sistema Operativo ---
+.DS_Store
+Thumbs.db
+
+# --- Docker (Opcional, depende de tu setup) ---
+# Si generas volúmenes dentro de la carpeta del proyecto:
+mysql-data/
+postgres-data/

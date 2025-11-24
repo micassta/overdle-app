@@ -1,0 +1,103 @@
+// schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  user_id       Int            @id @default(autoincrement())
+  username      String         @unique
+  password_hash String
+  fecha_registro DateTime      @default(now())
+  
+  // Relación: Un usuario tiene muchos progresos
+  progress      UserProgress[] 
+}
+
+model Heroes {
+  hero_id     Int      @id @default(autoincrement())
+  hero_name   String    @unique
+  role        String
+  launch_year Int
+
+  //Campos para el modo clásico
+  gender      String   @default("Unknown") // Ej: Female, Male, NB
+  species     String   @default("Human")   // Ej: Human, Omnic, Animal
+  image_url   String?  // El ? significa que puede estar vacío al principio
+
+  // Relaciones (Un héroe tiene muchas skins, habilidades, etc.)
+  skins       Skins[]
+  abilities   Abilities[]
+  phrases     Phrases[]
+  
+  // Relaciones con los Puzzles Diarios (Cuando este héroe es la respuesta)
+  puzzlesAsClassic DailyPuzzles[] @relation("ClassicHero")
+}
+
+model Skins {
+  skin_id   Int    @id @default(autoincrement())
+  skin_name String
+  rarity    String
+  hero_id   Int
+  
+  hero      Heroes @relation(fields: [hero_id], references: [hero_id])
+  
+  puzzles   DailyPuzzles[]
+}
+
+model Abilities {
+  ability_id   Int    @id @default(autoincrement())
+  ability_name String
+  icon_url     String
+  hero_id      Int
+
+  hero         Heroes @relation(fields: [hero_id], references: [hero_id])
+  
+  puzzles      DailyPuzzles[]
+}
+
+model Phrases {
+  phrase_id   Int    @id @default(autoincrement())
+  phrase_text String @db.Text // Usamos @db.Text para textos largos
+  audio_url   String? // El ? significa que puede ser opcional si no encuentras audio
+  hero_id     Int
+
+  hero        Heroes @relation(fields: [hero_id], references: [hero_id])
+  
+  puzzles     DailyPuzzles[]
+}
+
+model DailyPuzzles {
+  puzzle_date     DateTime @id @db.Date // Solo fecha, sin hora
+  
+  // Claves foráneas para las respuestas del día
+  classic_hero_id Int
+  daily_ability_id Int
+  daily_skin_id    Int
+  daily_phrase_id  Int
+
+  // Conexiones con las tablas reales
+  classic_hero    Heroes    @relation("ClassicHero", fields: [classic_hero_id], references: [hero_id])
+  daily_ability   Abilities @relation(fields: [daily_ability_id], references: [ability_id])
+  daily_skin      Skins     @relation(fields: [daily_skin_id], references: [skin_id])
+  daily_phrase    Phrases   @relation(fields: [daily_phrase_id], references: [phrase_id])
+
+  progress        UserProgress[]
+}
+
+model UserProgress {
+  progress_id Int      @id @default(autoincrement())
+  game_mode   String
+  attempts    Int
+  answered    Boolean
+  user_id     Int
+  date        DateTime @db.Date
+
+  user        Users        @relation(fields: [user_id], references: [user_id])
+  dailyPuzzle DailyPuzzles @relation(fields: [date], references: [puzzle_date])
+}

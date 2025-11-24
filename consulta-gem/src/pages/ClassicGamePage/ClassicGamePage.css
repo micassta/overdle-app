@@ -1,0 +1,127 @@
+.classic-game-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  gap: 1.5rem;
+}
+
+.info-box {
+  background: linear-gradient(135deg, #F8ECC0, #C2AC62 ,#865833);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.8);
+  color: #2d2d2d;
+}
+
+.input-form {
+  display: flex;
+  width: 100%;
+  max-width: 500px;
+
+  align-content: stretch;
+}
+
+
+
+.input-wrapper {
+  position: relative; /* Clave para posicionar las sugerencias */
+  flex-grow: 1;
+}
+
+.input-wrapper input {
+  width: 100%;
+  padding: 15px;
+  font-size: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(0, 0, 0, 0.5);
+  border-radius: 8px 0 0 8px;
+  color: rgb(255, 255, 255);
+  outline: none;
+  transition: border-color 0.2s;
+
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.input-wrapper input:focus {
+  border-color: rgba(250, 156, 30, 1);
+  border-radius: 8px 0 0 0;
+}
+
+.submit-button {
+  padding: 15px 25px;
+  background-color: rgba(250, 156, 30, 1);
+  color: white;
+  border: none;
+  border-radius: 0 8px 8px 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s;
+
+  position: relative;  z-index: 2;
+}
+
+.submit-button:active {
+  transform: scale(0.95);
+}
+
+.suggestions-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  z-index: 10;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 10px 15px;
+  width: 100%;
+  background: none;
+  border: none;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: rgba(250, 156, 30, 1);
+  color: #212121;
+}
+
+.hero-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 5px;
+}
+
+.yesterdays-hero {
+  margin-top: 1rem;
+  color: white;
+  text-shadow: 0 0 5px rgb(48, 48, 48);
+  
+}
+
+.yesterdays-hero strong {
+  color: rgba(250, 156, 30, 1);
+  text-shadow: 0 0 5px rgb(53, 53, 53);
+}
+
+::placeholder {
+
+  color: #aaa;
+}

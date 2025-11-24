@@ -1,0 +1,54 @@
+# FROM node:22
+
+# RUN npm install -g nodemon
+
+
+# WORKDIR /home/overdle
+
+# COPY package.json .
+# COPY package-lock.json .
+
+# RUN npm install
+
+# COPY . .
+
+# EXPOSE 3001
+
+# CMD npx prisma generate && nodemon -L index.js
+
+# # Dockerfile.dev
+# FROM node:22
+
+# WORKDIR /home/overdle
+
+# COPY package.json .
+# COPY package-lock.json .
+
+# # Instalamos dependencias (incluye tsx si está en package.json, si no, se instala global)
+# RUN npm install
+# # Instalamos tsx globalmente por si acaso
+# RUN npm install -g tsx
+
+# COPY . .
+
+# EXPOSE 3001
+
+# # CAMBIO CLAVE: Usamos 'tsx watch' en lugar de 'nodemon'
+# #CMD npx prisma generate && tsx watch index.ts
+# CMD ["/bin/sh", "-c", "npx prisma generate && npx prisma db push && npx tsx prisma/seed.ts && tsx watch index.ts"]
+
+FROM node:22
+
+WORKDIR /home/overdle
+
+COPY package.json package-lock.json ./
+RUN npm install
+
+RUN npm install -g tsx
+
+COPY . .
+
+EXPOSE 3001
+
+#CMD ["tsx", "watch", "index.ts"]
+CMD npx prisma generate && tsx watch index.ts

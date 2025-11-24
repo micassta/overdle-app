@@ -1,0 +1,65 @@
+.gamemode-button {
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 1rem;
+  
+  border-radius: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px); /* Efecto de vidrio esmerilado */
+  text-decoration: none;
+
+  color: rgb(255, 255, 255);
+
+  display: flex;
+  align-items: center;
+
+  overflow: hidden;
+
+  gap: 20px;
+
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.gamemode-button:hover {
+  transform: scale(1.03); /* Se agranda un poco al pasar el mouse */
+  box-shadow: 0 0 20px var(--glow-color, white); /* Usamos una variable para el brillo */
+}
+
+/* Colores dinámicos basados en la clase */
+.gamemode-button.yellow { --glow-color: #ffc700; border-color: #ffc700; }
+.gamemode-button.pink { --glow-color: #ff7eb9; border-color: #ff7eb9; }
+.gamemode-button.green { --glow-color: #4ccc25; border-color: #4ccc25; }
+.gamemode-button.owrange { --glow-color: rgba(250, 156, 30, 1); border-color: rgba(250, 156, 30, 1); }
+
+.button-icon {
+  background-color: #212121;
+  color: white;
+  padding: 15px 20px;
+  font-size: 2.2rem;
+  width: 50px;
+  text-align: center;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-text {
+  flex: 1;
+  text-align: left;
+
+  background-image: radial-gradient(#554e37 15%, transparent 16%);
+  background-size: 15px 15px;
+}
+
+.button-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.button-description {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+}

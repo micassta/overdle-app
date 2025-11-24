@@ -1,0 +1,40 @@
+services:
+  database:
+    image: mysql:8.0
+    ports:
+      - "3306:3306" 
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: overdle
+      MYSQL_DATABASE: overdle_database
+
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./overdle-database-setup:/docker-entrypoint-initdb.d
+    
+    networks:
+      - overdle-net
+
+  frontend:
+    build: ./overdle-frontend
+    ports:
+      - "3000:80"
+    networks:
+      - overdle-net
+
+  backend:
+    build: ./overdle-backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - database
+    networks:
+      - overdle-net
+
+networks:
+  overdle-net:
+    driver: bridge
+
+volumes:
+  mysql-data:

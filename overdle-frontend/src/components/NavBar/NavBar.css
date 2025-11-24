@@ -1,0 +1,103 @@
+.navbar-container {
+  width: 100%;
+  padding: 40px 20px;
+  background: rgba(210, 211, 211, 0.4);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  border-bottom: none;
+  transition: background 0.5s ease;
+}
+
+.navbar-container.past-mode {
+    background: rgba(84, 18, 128, 0.6);
+    border-bottom: 2px solid #a855f7;
+}
+
+.navbar-content {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  align-items: center;
+}
+
+.navbar-icon-button {
+  background: none;
+  border: none;
+  color: rgba(74, 76, 78, 1);
+  cursor: pointer;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: transform 0.2s ease-in-out;
+}
+
+.navbar-icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(250, 156, 30, 1);
+  transform: scale(1.04);
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  font-weight: bold;
+  font-size: 2.8rem;
+  text-decoration: none;
+  transition: transform 0.2s ease-in-out;
+}
+
+.logo-image {
+  height: 80px;
+  width: auto;
+  filter: drop-shadow(0 0 6px rgb(255, 213, 158));
+}
+
+.logo-text {
+  background-image: linear-gradient(135deg, #f7f0d7, #dfd09f, #b3942d, #c0a942, #411d00);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  -webkit-text-stroke: 0.01px #7a7a7a;
+}
+
+.time-travel-badge {
+    font-size: 0.8rem;
+    color: #FA9C1E; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.6);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-top: -5px;
+    border: 1px solid #FA9C1E;
+}
+
+.time-travel-badge.today-badge {
+    color: #9addfb;
+    border-color: #9addfb;
+}
+
+.user-avatar-small {
+    width: 35px;
+    height: 35px;
+    background-color: #FA9C1E;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border: 2px solid white;
+}

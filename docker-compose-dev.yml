@@ -1,0 +1,195 @@
+# services:
+#   database:
+#     image: mysql:8.0
+#     ports:
+#       - "3307:3306"
+#     restart: always
+#     environment:
+#       MYSQL_ROOT_PASSWORD: overdle
+#       MYSQL_DATABASE: overdle_database
+#     volumes:
+#       - mysql-data:/var/lib/mysql
+#     networks:
+#       - overdle-net
+
+#   frontend:
+#     build:
+#       context: ./overdle-frontend
+#       dockerfile: Dockerfile.dev
+#     ports:
+#       - "3000:3000"
+#     networks:
+#       - overdle-net
+#     command: npm run dev
+#     develop:
+#       watch:
+#         - action: sync
+#           path: ./overdle-frontend
+#           target: /overdle
+#           ignore:
+#             - node_modules/
+#             - .next/
+#         - action: rebuild
+#           path: ./overdle-frontend/package.json
+
+#   backend:
+#     build:
+#       context: ./overdle-backend
+#       dockerfile: Dockerfile.dev
+#     ports:
+#       - "3001:3001"
+#     depends_on:
+#       - database
+#     networks:
+#       - overdle-net
+    
+#     # COMANDO DE ESPERA: Evita que falle al inicio
+#     command: >
+#       /bin/sh -c "
+#         echo '⏳ Esperando a MySQL...';
+#         until npx prisma db push; do 
+#           echo '...MySQL no está lista, reintentando en 3s'; 
+#           sleep 3; 
+#         done;
+#         echo '✅ DB Conectada!';
+#         npx prisma generate;
+#         npx tsx prisma/seed.ts;
+#         tsx watch index.ts
+#       "
+
+#     develop:
+#       watch:
+#         - action: sync
+#           path: ./overdle-backend
+#           target: /home/overdle
+#           ignore:
+#             - node_modules/
+#         - action: rebuild
+#           path: ./overdle-backend/package.json
+
+# networks:
+#   overdle-net:
+#     driver: bridge
+
+# volumes:
+#   mysql-data:
+
+services:
+  database:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: overdle
+      MYSQL_DATABASE: overdle_database
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - overdle-net
+
+  frontend:
+    build:
+      context: ./overdle-frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    networks:
+      - overdle-net
+    # Forzamos el comando aquí para asegurarnos que NO use flags raras
+    command: npm run dev
+    # ESTA ES LA NUEVA SOLUCIÓN (Docker File Sync)
+    develop:
+      watch:
+        - action: sync
+          path: ./overdle-frontend
+          target: /overdle
+          ignore:
+            - node_modules/
+            - .next/
+        - action: rebuild
+          path: ./overdle-frontend/package.json
+
+  backend:
+    build:
+      context: ./overdle-backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3001:3001"
+    depends_on:
+      - database
+    networks:
+      - overdle-net
+    # Forzamos el comando Legacy aquí directamente
+    #command: /bin/sh -c "npx prisma generate && nodemon -L index.js"
+    # ESTA ES LA NUEVA SOLUCIÓN (Docker File Sync)
+    develop:
+      watch:
+        - action: sync
+          path: ./overdle-backend
+          target: /home/overdle
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./overdle-backend/package.json
+
+networks:
+  overdle-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+
+# services:
+#   database:
+#     image: mysql:8.0
+#     ports:
+#       - "3307:3306"
+#     restart: always
+#     environment:
+#       MYSQL_ROOT_PASSWORD: overdle
+#       MYSQL_DATABASE: overdle_database
+#     volumes:
+#       - mysql-data:/var/lib/mysql
+#     networks:
+#       - overdle-net
+
+#   frontend:
+#     build:
+#       context: ./overdle-frontend
+#       dockerfile: Dockerfile.dev
+#     ports:
+#       - "3000:3000"
+#     networks:
+#       - overdle-net
+#     environment:
+#       - WATCHPACK_POLLING=true
+#       - CHOKIDAR_USEPOLLING=true
+#     volumes:
+#       # Mapeamos carpeta local -> carpeta del contenedor
+#       - ./overdle-frontend:/overdle
+#       # Protegemos node_modules internos
+#       - /overdle/node_modules
+#       - /overdle/.next
+
+#   backend:
+#     build:
+#       context: ./overdle-backend
+#       dockerfile: Dockerfile.dev
+#     ports:
+#       - "3001:3001"
+#     depends_on:
+#       - database
+#     networks:
+#       - overdle-net
+#     volumes:
+#       # Mapeamos carpeta local -> carpeta del contenedor
+#       - ./overdle-backend:/home/overdle
+#       - /home/overdle/node_modules
+
+# networks:
+#   overdle-net:
+#     driver: bridge
+
+# volumes:
+#   mysql-data:
