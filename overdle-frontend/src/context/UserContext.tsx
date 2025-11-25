@@ -1,3 +1,5 @@
+// VERSIÓN: Con Autoverificación de Sesión
+// FECHA: Limpia sesiones fantasmas al cargar
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -7,9 +9,15 @@ type User = {
   username: string;
 };
 
+// Respuesta del login ahora incluye isNew
+type LoginResponse = {
+    user: User;
+    isNew: boolean;
+};
+
 type UserContextType = {
   user: User | null;
-  login: (username: string) => Promise<boolean>;
+  login: (username: string) => Promise<{ success: boolean; isNew?: boolean; message?: string }>;
   logout: () => void;
   gameDate: Date;
   setGameDate: (date: Date) => void;
@@ -21,11 +29,36 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [gameDate, setGameDate] = useState<Date>(new Date());
 
+  // 1. VERIFICACIÓN DE SESIÓN AL CARGAR
   useEffect(() => {
-    const storedUser = localStorage.getItem('overdle_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const checkSession = async () => {
+        const storedUserStr = localStorage.getItem('overdle_user');
+        
+        if (storedUserStr) {
+            const storedUser = JSON.parse(storedUserStr);
+            
+            try {
+                // Preguntamos al backend si este usuario es real
+                const res = await fetch(`http://localhost:3001/api/auth/check/${storedUser.user_id}`);
+                
+                if (res.ok) {
+                    // Si el backend dice OK, mantenemos la sesión
+                    setUser(storedUser);
+                } else {
+                    // Si el backend dice 404 (No encontrado), borramos la sesión fantasma
+                    console.warn("Sesión inválida detectada. Cerrando sesión...");
+                    localStorage.removeItem('overdle_user');
+                    setUser(null);
+                }
+            } catch (e) {
+                console.error("Error verificando sesión, asumiendo offline o error:", e);
+                // Opcional: Podrías mantener la sesión si es error de red, 
+                // pero por seguridad en desarrollo mejor no.
+            }
+        }
+    };
+
+    checkSession();
   }, []);
 
   const login = async (username: string) => {
@@ -37,15 +70,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (res.ok) {
-        const userData = await res.json();
-        setUser(userData);
-        localStorage.setItem('overdle_user', JSON.stringify(userData));
-        return true;
+        const data: LoginResponse = await res.json();
+        setUser(data.user);
+        localStorage.setItem('overdle_user', JSON.stringify(data.user));
+        
+        // Devolvemos info extra para que el Modal muestre mensajes distintos
+        return { success: true, isNew: data.isNew };
       }
-      return false;
+      return { success: false, message: "Error en el servidor" };
     } catch (e) {
       console.error("Error en login:", e);
-      return false;
+      return { success: false, message: "Error de conexión" };
     }
   };
 

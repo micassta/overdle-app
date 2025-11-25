@@ -1,0 +1,112 @@
+.archive-container {
+    padding: 40px 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    min-height: 80vh;
+    color: white;
+    text-align: center;
+}
+
+.archive-title {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(250, 156, 30, 0.5);
+}
+
+.archive-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    /*color: #ccc;*/
+    color: #ccc;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.archive-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 15px;
+}
+
+/* TARJETA DE DÍA */
+.day-card {
+    aspect-ratio: 1;
+    background: #2d2d2d;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border: 2px solid #444;
+    transition: transform 0.2s, border-color 0.2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.day-card:hover {
+    transform: translateY(-5px);
+    border-color: white;
+}
+
+/* ESTADOS */
+.day-card.won {
+    border-color: #1c9e43;
+    background: rgba(28, 158, 67, 0.1);
+}
+.day-card.won .date-text { color: #1c9e43; }
+
+.day-card.played-lost { /* Usamos otro nombre para diferenciar de css globales */
+    border-color: #e02626;
+    background: rgba(224, 38, 38, 0.1);
+}
+.day-card.played-lost .date-text { color: #e02626; }
+
+.day-card.unplayed {
+    border-color: #555;
+    opacity: 0.7;
+}
+
+/* CONTENIDO INTERNO */
+.date-number {
+    font-size: 2rem;
+    font-weight: bold;
+}
+.date-month {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+}
+
+.hero-preview {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.4;
+    z-index: 0;
+}
+
+.card-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

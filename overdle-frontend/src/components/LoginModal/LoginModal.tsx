@@ -1,6 +1,12 @@
+// VERSIÓN: Con Feedback de Usuario (Nuevo vs Existente)
+// FECHA: Muestra alertas visuales según el tipo de login
 import React, { useState } from 'react';
 import './LoginModal.css';
-import { IoClose, IoPerson, IoLogOut } from 'react-icons/io5';
+
+// Si no tienes react-icons, puedes borrar esta línea y usar texto simple en el botón
+import { IoClose, IoPerson, IoLogOut, IoInformationCircle } from 'react-icons/io5';
+
+// Ajusta la ruta si UserContext está en otro lugar
 import { useUser } from '../../context/UserContext'; 
 
 interface LoginModalProps {
@@ -10,7 +16,7 @@ interface LoginModalProps {
 
 export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [usernameInput, setUsernameInput] = useState('');
-  const [error, setError] = useState('');
+  const [statusMessage, setStatusMessage] = useState<{type: 'error' | 'success' | 'info', text: string} | null>(null);
   
   const { user, login, logout } = useUser();
 
@@ -18,21 +24,36 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setStatusMessage(null);
     
-    const success = await login(usernameInput);
+    // Llamamos al login del contexto
+    const result = await login(usernameInput);
     
-    if (success) {
-        onClose();
-        setUsernameInput('');
+    if (result.success) {
+        // Lógica de mensajes
+        if (result.isNew) {
+            setStatusMessage({ type: 'success', text: '¡Cuenta creada! Bienvenido.' });
+        } else {
+            setStatusMessage({ type: 'info', text: `¡Bienvenido de nuevo, ${usernameInput}!` });
+        }
+
+        // Cerramos el modal después de 1.5 segundos para que lean el mensaje
+        setTimeout(() => {
+            onClose();
+            setUsernameInput('');
+            setStatusMessage(null);
+        }, 1500);
+
     } else {
-        setError("Error: No se pudo conectar o el nombre es inválido.");
+        setStatusMessage({ type: 'error', text: result.message || "Error al conectar." });
     }
   };
 
   const handleLogout = () => {
     logout();
-    onClose();
+    setStatusMessage(null); // Limpiamos mensajes al salir
+    // No cerramos el modal inmediatamente para que vea que salió, o sí, depende tu gusto.
+    // onClose(); 
   };
 
   return (
@@ -49,6 +70,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                 </div>
                 <h2>¡Hola, {user.username}!</h2>
                 <p>Sesión activa.</p>
+                
                 <div style={{ marginTop: 20 }}>
                     <button onClick={handleLogout} className="logout-btn">
                         <IoLogOut style={{ marginRight: 5 }}/> Cerrar Sesión
@@ -77,10 +99,29 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                         minLength={3}
                     />
                     
-                    {error && <p style={{ color: '#ff5c5c', fontSize: '0.9rem', marginTop: '5px' }}>{error}</p>}
+                    {/* MENSAJES DE ESTADO (Feedback) */}
+                    {statusMessage && (
+                        <div style={{ 
+                            marginTop: 10, 
+                            padding: 10, 
+                            borderRadius: 5,
+                            fontSize: '0.9rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            backgroundColor: statusMessage.type === 'error' ? 'rgba(255, 92, 92, 0.2)' : 
+                                             statusMessage.type === 'success' ? 'rgba(28, 158, 67, 0.2)' : 
+                                             'rgba(250, 156, 30, 0.2)', // Info (Naranja)
+                            color: statusMessage.type === 'error' ? '#ff5c5c' : 
+                                   statusMessage.type === 'success' ? '#4ef07e' : 
+                                   '#FA9C1E'
+                        }}>
+                           <IoInformationCircle /> {statusMessage.text}
+                        </div>
+                    )}
 
                     <button type="submit" className="login-submit-btn">
-                        Entrar / Registrarse
+                        Entrar
                     </button>
                 </form>
             </>

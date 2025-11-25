@@ -1,7 +1,16 @@
+// VERSIÓN: Con Verificación de Sesión y Detección de Usuario Existente
+// FECHA: Corrección del problema "Usuario Fantasma"
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import cors from 'cors';
-import { getOrCreateDailyPuzzle, checkClassicGuess } from './services/dailyPuzzleService';
+
+import { 
+  getOrCreateDailyPuzzle, 
+  checkClassicGuess, 
+  getPuzzleArchive 
+} from './services/dailyPuzzleService';
+
+import { saveUserProgress } from './services/userService';
 
 const prisma = new PrismaClient();
 const app = express();
@@ -11,84 +20,87 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/', (req, res) => {
-  res.send('¡El Backend de Overdle está vivo (TS Mode)!');
+  res.send('¡El Backend de Overdle está vivo!');
 });
 
 // --- RUTA: BÚSQUEDA DE HÉROES ---
 app.get('/api/heroes/search', async (req, res) => {
-    const searchQuery = req.query.q as string; // Forzamos tipo string
-
+    const searchQuery = req.query.q as string;
     if (!searchQuery || searchQuery.length < 1) {
       res.json([]);
-      return; // Importante poner return para que TS sepa que la función acaba
+      return; 
     }
-  
     try {
       const heroes = await prisma.heroes.findMany({
-        where: {
-          hero_name: {
-            contains: searchQuery 
-          }
-        },
-        select: {
-          hero_id: true,
-          hero_name: true,
-          image_url: true 
-        },
+        where: { hero_name: { contains: searchQuery } },
+        select: { hero_id: true, hero_name: true, image_url: true },
         take: 5 
       });
       res.json(heroes);
     } catch (error) {
-      console.error("Error buscando héroes:", error);
-      res.status(500).json({ error: "Error interno del servidor" });
+      res.status(500).json({ error: "Error interno" });
     }
 });
 
-// --- RUTA: OBTENER PUZZLE DEL DÍA ---
+// --- RUTA: OBTENER PUZZLE ---
 app.get('/api/game/daily', async (req, res) => {
+    const dateQuery = req.query.date as string;
+    const targetDate = dateQuery ? new Date(dateQuery) : undefined;
+
     try {
-      const dailyPuzzle = await getOrCreateDailyPuzzle();
-      
+      const dailyPuzzle = await getOrCreateDailyPuzzle(targetDate);
       res.json({
           message: "Juego listo",
           puzzle_date: dailyPuzzle.puzzle_date,
-          // @ts-ignore: Ignoramos error si classic_hero es opcional en tipos
           debug_solution: dailyPuzzle.classic_hero?.hero_name 
       });
-  
     } catch (error) {
-      console.error("Error generando puzzle diario:", error);
-      res.status(500).json({ error: "Error interno creando el juego diario" });
+      console.error(error);
+      res.status(500).json({ error: "Error creando juego" });
     }
 });
 
-app.listen(port, () => {
-  console.log(`Backend corriendo en http://localhost:${port}`);
-});
-
-// --- RUTA: HACER UN INTENTO (GUESS) ---
-// POST /api/game/classic/guess
-// Body: { "hero_id": 5 }
+// --- RUTA: INTENTO (GUESS) ---
 app.post('/api/game/classic/guess', async (req, res) => {
-  const { hero_id } = req.body;
-
-  if (!hero_id) {
-     res.status(400).json({ error: "Falta el hero_id" });
-     return;
-  }
+  const { hero_id, date } = req.body;
+  if (!hero_id) { res.status(400).json({ error: "Falta hero_id" }); return; }
+  const gameDateStr = date || new Date().toISOString();
 
   try {
-    const result = await checkClassicGuess(Number(hero_id));
+    const result = await checkClassicGuess(Number(hero_id), gameDateStr);
     res.json(result);
   } catch (error) {
-    console.error("Error validando intento:", error);
-    res.status(500).json({ error: "Error interno validando el juego" });
+    res.status(500).json({ error: "Error validando" });
   }
 });
 
-// --- RUTA: LOGIN / REGISTRO ---
-// POST /api/auth/login
-// Body: { "username": "TracerMain" }
+// ==========================================
+//      RUTAS DE AUTENTICACIÓN MEJORADAS
+// ==========================================
+
+// 1. VERIFICAR SESIÓN (NUEVA)
+// El frontend llamará a esto al cargar para ver si el usuario del localStorage es real
+app.get('/api/auth/check/:userId', async (req, res) => {
+    const userId = Number(req.params.userId);
+    
+    try {
+        const user = await prisma.users.findUnique({
+            where: { user_id: userId }
+        });
+
+        if (user) {
+            res.json({ valid: true, user });
+        } else {
+            // Si no encuentra al usuario, dice que es inválido
+            res.status(404).json({ valid: false });
+        }
+    } catch (error) {
+        res.status(500).json({ error: "Error verificando sesión" });
+    }
+});
+
+// 2. LOGIN INTELIGENTE (ACTUALIZADA)
+// Ahora distingue entre "Crear Nuevo" y "Entrar a Existente"
 app.post('/api/auth/login', async (req, res) => {
   const { username } = req.body;
 
@@ -98,23 +110,68 @@ app.post('/api/auth/login', async (req, res) => {
   }
 
   try {
-    // Usamos upsert: Si existe lo trae, si no, lo crea.
-    // Como tu schema dice que password_hash es obligatorio, pondremos un dummy por ahora
-    // ya que es un login "sin contraseña" basado solo en nombre (tipo arcade).
-    const user = await prisma.users.upsert({
-      where: { username: username },
-      update: {}, // Si existe, no cambiamos nada
-      create: {
-        username: username,
-        password_hash: "dummy_hash_no_password_needed", // Placeholder
-      }
+    // Primero buscamos si existe
+    const existingUser = await prisma.users.findUnique({
+        where: { username: username }
     });
 
-    console.log(`👤 Usuario logueado: ${user.username} (ID: ${user.user_id})`);
-    res.json(user);
+    if (existingUser) {
+        // SI EXISTE: Lo devolvemos y avisamos que NO es nuevo
+        console.log(`👋 Usuario recurrente: ${username}`);
+        res.json({ user: existingUser, isNew: false });
+    } else {
+        // SI NO EXISTE: Lo creamos y avisamos que ES nuevo
+        const newUser = await prisma.users.create({
+            data: {
+                username: username,
+                password_hash: "dummy", 
+            }
+        });
+        console.log(`✨ Usuario nuevo creado: ${username}`);
+        res.json({ user: newUser, isNew: true });
+    }
 
   } catch (error) {
     console.error("Error en login:", error);
     res.status(500).json({ error: "Error al iniciar sesión" });
   }
+});
+
+// --- RUTA: GUARDAR PROGRESO ---
+app.post('/api/game/progress', async (req, res) => {
+  const { userId, date, won, attempts } = req.body;
+  if (!userId || !date) { res.status(400).json({ error: "Faltan datos" }); return; }
+
+  try {
+    // Verificamos primero si el usuario existe para evitar errores de llave foránea
+    const userExists = await prisma.users.findUnique({ where: { user_id: Number(userId) }});
+    if (!userExists) {
+        res.status(404).json({ error: "Usuario no encontrado en DB" });
+        return;
+    }
+
+    const progress = await saveUserProgress(Number(userId), date, Boolean(won), Number(attempts));
+    res.json({ success: true, progress });
+  } catch (error) {
+    console.error("Error guardando progreso:", error);
+    res.status(500).json({ error: "No se pudo guardar el progreso" });
+  }
+});
+
+// --- RUTA: ARCHIVO ---
+app.get('/api/archive', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) { res.status(400).json({ error: "Falta userId" }); return; }
+
+  try {
+    const archiveData = await getPuzzleArchive(Number(userId));
+    res.json(archiveData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Error obteniendo archivo" });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Backend corriendo en http://localhost:${port}`);
 });
