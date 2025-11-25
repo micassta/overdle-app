@@ -2,7 +2,6 @@ import { PrismaClient, Heroes, Skins, Abilities, Phrases, DailyPuzzles } from '@
 
 const prisma = new PrismaClient();
 
-// 1. MEJORA DE TIPADO: Usamos Genéricos <T> para decir "Esto devolverá un Héroe, o una Skin, etc."
 async function getRandomItem<T>(model: any): Promise<T | null> {
   const count = await model.count();
   const skip = Math.floor(Math.random() * count);
@@ -12,7 +11,6 @@ async function getRandomItem<T>(model: any): Promise<T | null> {
 }
 
 export async function getOrCreateDailyPuzzle(date?: Date) {
-  // Si no pasan fecha, usamos HOY. Si pasan fecha (Time Travel), usamos esa.
   const targetDate = date ? new Date(date) : new Date();
   targetDate.setHours(0, 0, 0, 0);
 
@@ -29,8 +27,6 @@ export async function getOrCreateDailyPuzzle(date?: Date) {
     return existingPuzzle;
   }
 
-  // Si es una fecha futura, no deberíamos generar puzzle, pero asumiremos que es para hoy/pasado
-  // Nota: Aquí ya no usamos 'any'. Typescript sabe que getRandomItem devuelve el tipo correcto.
   const randomHero = await getRandomItem<Heroes>(prisma.heroes);
   const randomSkin = await getRandomItem<Skins>(prisma.skins);
   const randomAbility = await getRandomItem<Abilities>(prisma.abilities);
@@ -57,22 +53,13 @@ export async function getOrCreateDailyPuzzle(date?: Date) {
 }
 
 export async function checkClassicGuess(guessedHeroId: number, dateStr: string) {
-  // Convertimos el string de la fecha (del contexto) a objeto Date
   const gameDate = new Date(dateStr);
-  
   const puzzle = await getOrCreateDailyPuzzle(gameDate);
   
-  const targetHero = await prisma.heroes.findUnique({
-    where: { hero_id: puzzle.classic_hero_id }
-  });
+  const targetHero = await prisma.heroes.findUnique({ where: { hero_id: puzzle.classic_hero_id } });
+  const guessedHero = await prisma.heroes.findUnique({ where: { hero_id: guessedHeroId } });
 
-  const guessedHero = await prisma.heroes.findUnique({
-    where: { hero_id: guessedHeroId }
-  });
-
-  if (!targetHero || !guessedHero) {
-    throw new Error("Héroe no encontrado.");
-  }
+  if (!targetHero || !guessedHero) throw new Error("Héroe no encontrado.");
 
   const result = {
     guessed_hero: guessedHero,
@@ -93,49 +80,38 @@ function compareNumbers(target: number, guess: number): 'correct' | 'higher' | '
   return target > guess ? 'higher' : 'lower';
 }
 
-// --- NUEVA FUNCIÓN PARA EL ARCHIVO ---
+// --- FUNCIÓN DE ARCHIVO ACTUALIZADA (LÓGICA AMARILLA) ---
 export async function getPuzzleArchive(userId: number) {
-  // 1. Obtenemos TODOS los puzzles pasados hasta hoy
   const allPuzzles = await prisma.dailyPuzzles.findMany({
-    where: {
-      puzzle_date: {
-        lte: new Date() // Menor o igual a hoy
-      }
-    },
-    orderBy: {
-      puzzle_date: 'desc' // Los más recientes primero
-    },
-    include: {
-      classic_hero: true // Traemos al héroe para mostrar la imagen si ya se ganó (opcional)
-    }
+    where: { puzzle_date: { lte: new Date() } },
+    orderBy: { puzzle_date: 'desc' },
+    include: { classic_hero: true }
   });
 
-  // 2. Obtenemos el progreso del usuario para saber cuáles jugó
   const userProgress = await prisma.userProgress.findMany({
-    where: {
-      user_id: userId,
-      game_mode: 'classic' // Filtramos por modo clásico
-    }
+    where: { user_id: userId, game_mode: 'classic' }
   });
 
-  // 3. Combinamos la info
   return allPuzzles.map(puzzle => {
-    // Buscamos si el usuario jugó este puzzle
-    // Nota: Comparamos timestamps o strings ISO para asegurar coincidencia
     const progress = userProgress.find(p => 
       new Date(p.date).toDateString() === new Date(puzzle.puzzle_date).toDateString()
     );
 
-    let status = 'unplayed'; // Por defecto gris
+    let status = 'unplayed';
+    
     if (progress) {
-      status = progress.answered ? 'won' : 'lost'; // Si answered es true (ganó), si no... (depende tu lógica de "lost")
-      // En Wordle normalmente es: verde si ganaste, rojo si agotaste intentos.
-      // Asumiremos que si existe registro y answered=true es WIN.
+      if (progress.answered) {
+          status = 'won'; // Ganó (Verde)
+      } else if (progress.attempts > 0) {
+          status = 'in_progress'; // Empezó pero no terminó (Amarillo)
+      } else {
+          status = 'lost'; // Si se rindió o perdió oficialmente (Rojo)
+      }
     }
 
     return {
       date: puzzle.puzzle_date,
-      hero_image: status === 'won' ? puzzle.classic_hero.image_url : null, // Solo mostramos la cara si ganó (spoiler free)
+      hero_image: status === 'won' ? puzzle.classic_hero.image_url : null,
       status: status, 
       attempts: progress?.attempts || 0
     };

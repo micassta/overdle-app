@@ -1,20 +1,16 @@
-// VERSIÓN: Conectada a Base de Datos (Sin Mock Data)
-// FECHA: Actualizado para leer historial real del usuario
+// VERSIÓN: Con Soporte Visual para "En Progreso"
 "use client";
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-// Asegúrate de que esta ruta coincida con donde tienes tu UserContext.
-// Si está en src/context, esta ruta ../../context es correcta desde src/app/archive
 import { useUser } from '../../context/UserContext'; 
 import './archive.css';
-
-// Si no tienes instalada esta librería, recuerda correr: npm install react-icons
-import { IoCheckmarkCircle, IoCloseCircle, IoHelpCircle } from "react-icons/io5";
+// Importamos el ícono de reloj (IoTime)
+import { IoCheckmarkCircle, IoCloseCircle, IoHelpCircle, IoTime } from "react-icons/io5";
 
 type ArchiveItem = {
   date: string;
-  status: 'won' | 'lost' | 'unplayed';
+  status: 'won' | 'lost' | 'in_progress' | 'unplayed'; // Añadimos in_progress al tipo
   hero_image?: string | null;
   attempts: number;
 };
@@ -27,14 +23,11 @@ export default function ArchivePage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Si no hay usuario, no podemos cargar historial personal
     if (!user) {
         setLoading(false);
         return;
     }
 
-    // --- CONEXIÓN REAL AL BACKEND ---
-    // Llamamos al endpoint que creamos en index.ts para obtener el historial
     fetch(`http://localhost:3001/api/archive?userId=${user.user_id}`)
         .then(res => {
             if (!res.ok) throw new Error("Error en red al obtener archivo");
@@ -53,11 +46,7 @@ export default function ArchivePage() {
 
   const handleSelectDate = (dateStr: string) => {
     const selectedDate = new Date(dateStr);
-    
-    // 1. "Viaje en el Tiempo": Actualizamos la fecha en el contexto global
     setGameDate(selectedDate);
-    
-    // 2. Redirigimos al Home (o ruta '/') para jugar el puzzle de ESA fecha
     router.push('/'); 
   };
 
@@ -74,15 +63,15 @@ export default function ArchivePage() {
       ) : (
         <>
             <div className="archive-legend">
-                <div className="legend-item"><span className="dot won"></span> Misión Cumplida</div>
-                <div className="legend-item"><span className="dot lost"></span> Misión Fallida</div>
+                <div className="legend-item"><span className="dot won"></span> Completada</div>
+                <div className="legend-item"><span className="dot lost"></span> Fallida</div>
+                <div className="legend-item"><span className="dot in_progress"></span> En Progreso</div>
                 <div className="legend-item"><span className="dot unplayed"></span> Pendiente</div>
             </div>
 
             {archiveData.length === 0 ? (
                 <div style={{ marginTop: 30, opacity: 0.8 }}>
-                    <p>No hay misiones registradas aún en la base de datos.</p>
-                    <small>¡Juega tu primera partida hoy para empezar a llenar el archivo!</small>
+                    <p>No hay misiones registradas aún.</p>
                 </div>
             ) : (
                 <div className="archive-grid">
@@ -98,10 +87,9 @@ export default function ArchivePage() {
                                 onClick={() => handleSelectDate(item.date)}
                                 title={`Jugar fecha: ${dateObj.toLocaleDateString()}`}
                             >
-                                {/* Imagen de fondo (Solo se muestra si ganó para evitar spoilers) */}
+                                {/* Imagen de fondo (Solo si ganó, para evitar spoilers) */}
                                 {item.status === 'won' && item.hero_image && (
                                     <div className="hero-preview-wrapper">
-                                        {/* Usamos img estándar para evitar problemas de configuración de dominios externos */}
                                         <img src={item.hero_image} alt="Hero" className="hero-preview" />
                                     </div>
                                 )}
@@ -113,6 +101,8 @@ export default function ArchivePage() {
                                     <div className="status-icon">
                                         {item.status === 'won' && <IoCheckmarkCircle className="icon-won" />}
                                         {item.status === 'lost' && <IoCloseCircle className="icon-lost" />}
+                                        {/* Nuevo Ícono para En Progreso */}
+                                        {item.status === 'in_progress' && <IoTime className="icon-progress" />}
                                         {item.status === 'unplayed' && <IoHelpCircle className="icon-pending" />}
                                     </div>
                                 </div>

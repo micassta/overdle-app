@@ -97,6 +97,9 @@ model UserProgress {
   answered    Boolean
   user_id     Int
   date        DateTime @db.Date
+  
+  // NUEVO CAMPO: Guardará un array de IDs (ej: [1, 5, 20])
+  guesses     Json?    
 
   user        Users        @relation(fields: [user_id], references: [user_id])
   dailyPuzzle DailyPuzzles @relation(fields: [date], references: [puzzle_date])

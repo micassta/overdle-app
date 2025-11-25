@@ -4,8 +4,8 @@ import "./home.css";
 
 const gameModes = [
   { icon: '❓', title: 'Clásico', description: 'Adivina el Héroe en cada intento', color: 'owrange', linkTo: '/classic' },
-  { icon: '🤔', title: 'Emoji', description: 'Adivina el Héroe con emojis', color: 'green', linkTo: '/emojis' },
-  { icon: '🔁', title: 'Habilidad', description: 'Adivina con una habilidad', color: 'pink', linkTo: '/habilities' },
+  //{ icon: '🤔', title: 'Emoji', description: 'Adivina el Héroe con emojis', color: 'green', linkTo: '/emojis' },
+  //{ icon: '🔁', title: 'Habilidad', description: 'Adivina con una habilidad', color: 'pink', linkTo: '/habilities' },
 ];
 
 export default function Home() {

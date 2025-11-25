@@ -1,37 +1,17 @@
-// VERSIÓN: FINAL CON GUARDADO Y FECHA
-// FECHA: Actualizado para enviar victoria a la DB y usar fecha del contexto
+// VERSIÓN: Persistencia Completa (Carga y Guarda cada intento)
 "use client"; 
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link'; 
-// Ajusta la ruta si tu UserContext está en otra carpeta, ej: '@/context/UserContext'
 import { useUser } from '../../context/UserContext'; 
 import './classic.css';
 
-// Tipos
-type HeroSuggestion = {
-  hero_id: number;
-  hero_name: string;
-  image_url: string | null;
-};
-
+// ... (Tus tipos HeroSuggestion y GuessResult se mantienen igual) ...
+type HeroSuggestion = { hero_id: number; hero_name: string; image_url: string | null; };
 interface GuessResult {
-  guessed_hero: {
-    hero_id: number;
-    hero_name: string;
-    image_url: string;
-    gender: string;
-    role: string;
-    species: string;
-    launch_year: number;
-  };
+  guessed_hero: { hero_id: number; hero_name: string; image_url: string; gender: string; role: string; species: string; launch_year: number; };
   correct: boolean;
-  comparison: {
-    gender: boolean;
-    role: boolean;
-    species: boolean;
-    launch_year: 'correct' | 'higher' | 'lower';
-  };
+  comparison: { gender: boolean; role: boolean; species: boolean; launch_year: 'correct' | 'higher' | 'lower'; };
 }
 
 export default function ClassicPage() {
@@ -41,25 +21,48 @@ export default function ClassicPage() {
   
   const [guesses, setGuesses] = useState<GuessResult[]>([]);
   const [gameWon, setGameWon] = useState(false);
+  const [loadingGame, setLoadingGame] = useState(true); // Para que no se vea vacío mientras carga
   
-  // Obtenemos usuario y fecha del contexto global
   const { user, gameDate } = useUser();
 
-  // Resetear juego si cambiamos de día (Viaje en el tiempo)
+  // 1. CARGAR PROGRESO AL ENTRAR
   useEffect(() => {
-    setGuesses([]);
-    setGameWon(false);
-    setInputValue('');
-  }, [gameDate]);
+    const loadProgress = async () => {
+        setGuesses([]);
+        setGameWon(false);
+        setInputValue('');
+        setLoadingGame(true);
 
-  // Buscador de héroes (Debounce)
+        if (!user) {
+            setLoadingGame(false);
+            return;
+        }
+
+        try {
+            // Pedimos al backend: "¿Cómo dejé el juego este día?"
+            const res = await fetch(`http://localhost:3001/api/game/load?userId=${user.user_id}&date=${gameDate.toISOString()}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.guesses && data.guesses.length > 0) {
+                    // Invertimos el orden para que el más reciente salga arriba (si el backend los manda en orden cronológico)
+                    setGuesses(data.guesses.reverse()); 
+                    setGameWon(data.won);
+                }
+            }
+        } catch (e) {
+            console.error("Error cargando partida:", e);
+        } finally {
+            setLoadingGame(false);
+        }
+    };
+
+    loadProgress();
+  }, [gameDate, user]); 
+
+  // ... (useEffects del buscador igual que antes) ...
   useEffect(() => {
-    if (inputValue.length === 0) {
-      setSuggestions([]);
-      return;
-    }
+    if (inputValue.length === 0) { setSuggestions([]); return; }
     if (selectedHero && inputValue === selectedHero.hero_name) return;
-
     const delay = setTimeout(async () => {
       try {
         const res = await fetch(`http://localhost:3001/api/heroes/search?q=${inputValue}`);
@@ -68,21 +71,18 @@ export default function ClassicPage() {
     }, 300);
     return () => clearTimeout(delay);
   }, [inputValue, selectedHero]);
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => { setInputValue(e.target.value); setSelectedHero(null); };
+  const handleSuggestionClick = (hero: HeroSuggestion) => { setInputValue(hero.hero_name); setSelectedHero(hero); setSuggestions([]); };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-    setSelectedHero(null); 
-  };
+  // 2. FUNCIÓN DE GUARDADO (Mejorada)
+  const saveProgress = async (currentGuesses: GuessResult[], isWin: boolean) => {
+    if (!user) return;
 
-  const handleSuggestionClick = (hero: HeroSuggestion) => {
-    setInputValue(hero.hero_name); 
-    setSelectedHero(hero);        
-    setSuggestions([]);           
-  };
-
-  // --- FUNCIÓN DE GUARDADO (La pieza clave que faltaba) ---
-  const saveProgress = async (won: boolean, attempts: number) => {
-    if (!user) return; // Solo guardamos si hay usuario logueado
+    // Extraemos solo los IDs para guardar en la DB (más ligero)
+    // Nota: Como 'currentGuesses' tiene el último intento al principio (índice 0),
+    // lo invertimos para guardar el historial cronológico [intento1, intento2, intento3]
+    const guessesToSave = [...currentGuesses].reverse().map(g => g.guessed_hero.hero_id);
 
     try {
         await fetch('http://localhost:3001/api/game/progress', {
@@ -90,14 +90,14 @@ export default function ClassicPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userId: user.user_id,
-                date: gameDate.toISOString(), // Enviamos la fecha que se jugó
-                won: won,
-                attempts: attempts
+                date: gameDate.toISOString(),
+                won: isWin,
+                attempts: currentGuesses.length,
+                guesses: guessesToSave // <--- ¡AQUÍ ESTÁ LA CLAVE!
             })
         });
-        console.log("✅ Progreso guardado correctamente.");
     } catch (e) {
-        console.error("❌ Error guardando progreso:", e);
+        console.error("Error guardando:", e);
     }
   };
 
@@ -106,27 +106,27 @@ export default function ClassicPage() {
     if (!selectedHero || gameWon) return; 
 
     try {
-      // Enviamos el intento al backend
       const response = await fetch('http://localhost:3001/api/game/classic/guess', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             hero_id: selectedHero.hero_id,
-            date: gameDate.toISOString() // Importante: enviamos la fecha del contexto
+            date: gameDate.toISOString() 
         }),
       });
 
-      if (!response.ok) throw new Error('Error en validación');
+      if (!response.ok) throw new Error('Error');
       const data: GuessResult = await response.json();
 
-      const newGuesses = [data, ...guesses];
+      const newGuesses = [data, ...guesses]; // Añadimos el nuevo al principio
       setGuesses(newGuesses);
 
-      if (data.correct) {
-        setGameWon(true);
-        // ¡Al ganar, guardamos en la DB!
-        saveProgress(true, newGuesses.length);
-      }
+      const isWin = data.correct;
+      if (isWin) setGameWon(true);
+
+      // GUARDAMOS AHORA MISMO (No esperamos a ganar)
+      saveProgress(newGuesses, isWin);
+
     } catch (error) {
       console.error(error);
     }
@@ -135,28 +135,21 @@ export default function ClassicPage() {
     setSelectedHero(null);
   };
 
-  // Formato bonito de fecha para el título
-  const dateDisplay = new Date(gameDate).toLocaleDateString('es-ES', { 
-    weekday: 'long', day: 'numeric', month: 'long' 
-  });
+  const dateDisplay = new Date(gameDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  if (loadingGame) return <div style={{color:'white', marginTop: 50, textAlign:'center'}}>Cargando misión...</div>;
 
   return (
     <main className="classic-game-container">
       <div className="info-box">
-        {/* Indicador de fecha (útil cuando viajas al pasado) */}
         <div className="date-indicator">{dateDisplay}</div>
-
         <h2>Modo Clásico</h2>
         {gameWon ? (
-            <div className="victory-message">
+            <div className="victory-message fade-in">
                 <h1 style={{ color: '#1c9e43', textShadow: '0 0 10px rgba(28, 158, 67, 0.5)' }}>¡VICTORIA!</h1>
-                <p>Has descubierto al héroe.</p>
-                {!user && <small style={{display:'block', color:'#777'}}>Inicia sesión para guardar tu racha.</small>}
-                
+                <p>Misión completada.</p>
                 <div style={{ marginTop: '20px' }}>
-                    <Link href="/emojis" className="next-mode-btn">
-                        Jugar Modo Emoji ➡️
-                    </Link>
+                    <Link href="/emojis" className="next-mode-btn">Jugar Modo Emoji ➡️</Link>
                 </div>
             </div>
         ) : (
@@ -167,23 +160,11 @@ export default function ClassicPage() {
       {!gameWon && (
         <form className="input-form" onSubmit={handleSubmit}>
             <div className="input-wrapper">
-                <input
-                type="text"
-                placeholder="Escribe un héroe..."
-                value={inputValue}
-                onChange={handleInputChange}
-                autoFocus
-                />
+                <input type="text" placeholder="Escribe un héroe..." value={inputValue} onChange={handleInputChange} autoFocus />
                 {suggestions.length > 0 && (
                 <div className="suggestions-list">
                     {suggestions.map((hero) => (
-                    <button 
-                        key={hero.hero_id} 
-                        type="button"
-                        className="suggestion-item"
-                        onClick={() => handleSuggestionClick(hero)}
-                    >
-                        {/* Asegúrate de que la ruta de la imagen sea correcta en tu carpeta public */}
+                    <button key={hero.hero_id} type="button" className="suggestion-item" onClick={() => handleSuggestionClick(hero)}>
                         <img src={hero.image_url || '/assets/unknown.png'} alt="" className="hero-avatar" />
                         <span>{hero.hero_name}</span>
                     </button>
@@ -201,7 +182,6 @@ export default function ClassicPage() {
             <div className={`hero-card ${guess.correct ? 'correct' : ''}`}>
                <img src={guess.guessed_hero.image_url} alt="hero" />
             </div>
-            
              <div className={`attribute-box ${guess.comparison.gender ? 'correct' : 'incorrect'}`}>
               <span className="attribute-label">Género</span>
               {guess.guessed_hero.gender}
@@ -214,11 +194,7 @@ export default function ClassicPage() {
               <span className="attribute-label">Especie</span>
               {guess.guessed_hero.species}
             </div>
-            <div className={`attribute-box \
-              ${guess.comparison.launch_year === 'correct' ? 'correct' : 'incorrect'} \
-              ${guess.comparison.launch_year === 'higher' ? 'arrow-up' : ''}\
-              ${guess.comparison.launch_year === 'lower' ? 'arrow-down' : ''}\
-            `}>
+            <div className={`attribute-box ${guess.comparison.launch_year === 'correct' ? 'correct' : 'incorrect'} ${guess.comparison.launch_year === 'higher' ? 'arrow-up' : ''}${guess.comparison.launch_year === 'lower' ? 'arrow-down' : ''}`}>
               <span className="attribute-label">Año</span>
               {guess.guessed_hero.launch_year}
             </div>

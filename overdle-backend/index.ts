@@ -10,7 +10,8 @@ import {
   getPuzzleArchive 
 } from './services/dailyPuzzleService';
 
-import { saveUserProgress } from './services/userService';
+import { saveUserProgress, getUserGameState, loginOrRegisterUser } from './services/userService'; 
+
 
 const prisma = new PrismaClient();
 const app = express();
@@ -137,25 +138,48 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// --- RUTA: GUARDAR PROGRESO ---
+// --- RUTA: GUARDAR PROGRESO (Actualizada) ---
 app.post('/api/game/progress', async (req, res) => {
-  const { userId, date, won, attempts } = req.body;
+  // Ahora esperamos "guesses" en el body
+  const { userId, date, won, attempts, guesses } = req.body; 
+
   if (!userId || !date) { res.status(400).json({ error: "Faltan datos" }); return; }
 
   try {
-    // Verificamos primero si el usuario existe para evitar errores de llave foránea
     const userExists = await prisma.users.findUnique({ where: { user_id: Number(userId) }});
-    if (!userExists) {
-        res.status(404).json({ error: "Usuario no encontrado en DB" });
-        return;
-    }
+    if (!userExists) { res.status(404).json({ error: "Usuario no encontrado" }); return; }
 
-    const progress = await saveUserProgress(Number(userId), date, Boolean(won), Number(attempts));
+    const progress = await saveUserProgress(
+        Number(userId), 
+        date, 
+        Boolean(won), 
+        Number(attempts),
+        guesses || [] // Pasamos los guesses
+    );
     res.json({ success: true, progress });
   } catch (error) {
-    console.error("Error guardando progreso:", error);
-    res.status(500).json({ error: "No se pudo guardar el progreso" });
+    console.error("Error guardando:", error);
+    res.status(500).json({ error: "Error guardando progreso" });
   }
+});
+
+// --- RUTA: CARGAR PARTIDA (NUEVA) ---
+app.get('/api/game/load', async (req, res) => {
+    const { userId, date } = req.query;
+    
+    if (!userId || !date) { 
+        res.status(400).json({ error: "Faltan datos" }); 
+        return; 
+    }
+
+    try {
+        const gameState = await getUserGameState(Number(userId), String(date));
+        // Si no hay nada guardado, devolvemos un estado vacío
+        res.json(gameState || { guesses: [], won: false }); 
+    } catch (error) {
+        console.error("Error cargando partida:", error);
+        res.status(500).json({ error: "Error cargando partida" });
+    }
 });
 
 // --- RUTA: ARCHIVO ---
